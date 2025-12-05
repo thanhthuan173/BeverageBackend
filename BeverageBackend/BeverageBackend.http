@@ -1,0 +1,6 @@
+@BeverageBackend_HostAddress = http://localhost:5063
+
+GET {{BeverageBackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

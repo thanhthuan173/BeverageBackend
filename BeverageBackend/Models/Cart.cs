@@ -1,0 +1,10 @@
+﻿namespace BeverageBackend.Models
+{
+    public class Cart
+    {
+        public int Id { get; set; }
+
+        public Customer Customer { get; set; }
+        public ICollection<CartItem> CartItems { get; set; }
+    }
+}

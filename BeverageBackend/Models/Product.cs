@@ -14,6 +14,7 @@ namespace BeverageBackend.Models
 
         public ICollection<CartItem> CartItems { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; }
+        public int CategoryId { get; set; }
         public Category Category { get; set; }
     }
 }

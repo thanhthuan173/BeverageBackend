@@ -57,6 +57,8 @@ namespace BeverageBackend.Controllers
         [HttpGet("{id}/orders")]
         public IActionResult ProductOrders(int id)
         {
+            if (!_product.ProductExists(id))
+                return NotFound();
             return Ok(_product.ProductOrders(id));
         }
     }

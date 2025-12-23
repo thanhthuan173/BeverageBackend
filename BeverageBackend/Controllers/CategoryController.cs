@@ -44,5 +44,11 @@ namespace BeverageBackend.Controllers
             var prods = _mapper.Map<List<ProductDto>>(_category.GetProductsByCategory(id));
             return Ok(prods);
         }
+
+        [HttpGet("{prodId}/category")]
+        public IActionResult GetCategoryByProductId(int prodId)
+        {
+            return Ok(_category.GetCategoryByProduct(prodId));
+        }
     }
 }

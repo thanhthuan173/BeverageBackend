@@ -54,12 +54,26 @@ namespace BeverageBackend.Controllers
             return Ok(prod);
         }
 
-        [HttpGet("{id}/orders")]
-        public IActionResult ProductOrders(int id)
+        [HttpGet("{prodId}/count_orders")]
+        public IActionResult ProductOrders(int prodId)
         {
-            if (!_product.ProductExists(id))
+            if (!_product.ProductExists(prodId))
                 return NotFound();
-            return Ok(_product.ProductOrders(id));
+            return Ok(_product.CountOrders(prodId));
+        }
+
+        [HttpGet("{prodId}/find_orders")]
+        public IActionResult GetOrdersByProduct(int prodId)
+        {
+            if (!_product.ProductExists(prodId))
+                return NotFound();
+            return Ok(_product.GetOrdersByProduct(prodId));
+        }
+
+        [HttpGet("{orderId}/find_products")]
+        public IActionResult GetProductsOfAOrder(int orderId)
+        {
+            return Ok(_product.GetProductsOfAOrder(orderId));
         }
     }
 }

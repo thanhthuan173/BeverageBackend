@@ -11,6 +11,11 @@ namespace BeverageBackend.Repository
             _context = context;
         }
 
+        public ICollection<Order> GetOrdersByProduct(int prodId)
+        {
+            return _context.OrderItems.Where(oi=>oi.ProductId==prodId).Select(oi=>oi.Order).ToList();
+        }
+
         public Product GetProduct(int id)
         {
             return _context.Products.Where(p => p.Id == id).FirstOrDefault();
@@ -29,14 +34,19 @@ namespace BeverageBackend.Repository
             return _context.Products.ToList();
         }
 
+        public ICollection<Product> GetProductsOfAOrder(int orderId)
+        {
+            return _context.OrderItems.Where(oi => oi.OrderId == orderId).Select(oi => oi.Product).ToList();
+        }
+
         public bool ProductExists(int id)
         {
             return _context.Products.Any(p => p.Id==id);
         }
 
-        public int ProductOrders(int id)
+        public int CountOrders(int prodId)
         {
-            var order = _context.OrderItems.Where(oi => oi.ProductId == id);
+            var order = _context.OrderItems.Where(oi => oi.ProductId == prodId);
             return order.Count();
         }
     }

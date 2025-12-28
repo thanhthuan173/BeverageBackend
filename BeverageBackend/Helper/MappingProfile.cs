@@ -11,6 +11,10 @@ namespace BeverageBackend.Helper
             CreateMap<Product, ProductDto>();
             CreateMap<Category, CategoryDto>();
             CreateMap<Customer, CustomerDto>();
+            CreateMap<Cart, CartDto>();
+            CreateMap<CartItem, CartItemDto>();
+            CreateMap<Order, OrderDto>();
+            CreateMap<OrderItem, OrderItem>();
         }
     }
 }

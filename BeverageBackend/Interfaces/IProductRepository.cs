@@ -8,8 +8,7 @@ namespace BeverageBackend.Interfaces
         Product GetProduct(int id);
         Product GetProduct(string name);
         int CountOrders(int prodId);
-        ICollection<Product> GetProductsOfAOrder(int orderId);
-        ICollection<Order> GetOrdersByProduct(int prodId);
+        int CountCarts(int prodId);
         bool ProductExists(int id);
     }
 }

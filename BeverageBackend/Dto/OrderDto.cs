@@ -10,5 +10,6 @@ namespace BeverageBackend.Dto
         public decimal TotalAmount { get; set; }
 
         public int CustomerId { get; set; }
+        public ICollection<OrderItemDto> OrderItems { get; set; }
     }
 }

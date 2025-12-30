@@ -35,7 +35,7 @@ namespace BeverageBackend.Repository
 
         public ICollection<CartItem> GetCartItems(int cartId)
         {
-            return _context.CartItems.Where(ci => ci.CartId == cartId).ToList();
+            return _context.CartItems.Where(ci => ci.CartId == cartId).Include(ci=>ci.Product).ToList();
         }
     }
 }

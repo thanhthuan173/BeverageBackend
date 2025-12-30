@@ -42,7 +42,7 @@ namespace BeverageBackend.Controllers
         {
             if (_customer.CustomerExits(id))
                 NotFound();
-            var orders = _customer.GetOrdersByCustomer(id);
+            var orders = _mapper.Map<List<OrderDto>>(_customer.GetOrdersByCustomer(id));
             return Ok(orders);
         }
     }

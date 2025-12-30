@@ -28,6 +28,8 @@ namespace BeverageBackend.Controllers
         [HttpGet("{id}")]
         public IActionResult GetOder(int id)
         {
+            if (!_order.OrderExists(id))
+                NotFound();
             var order = _mapper.Map<OrderDto>(_order.GetOrder(id));
             return Ok(order);
         }
@@ -35,6 +37,8 @@ namespace BeverageBackend.Controllers
         [HttpGet("{orderId}/customer")]
         public IActionResult GetCustomerByOrderId(int orderId)
         {
+            if (!_order.OrderExists(orderId))
+                NotFound();
             var cus = _mapper.Map<CustomerDto>(_order.GetCustomerByOrderId(orderId));
             return Ok(cus);
         }

@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using EcommerceBackend.Application.Interfaces;
 using EcommerceBackend.Infrastructure.Persistence;
 using EcommerceBackend.Infrastructure.Repository;
+using EcommerceBackend.Infrastructure.Email;
+using EcommerceBackend.Application.Interfaces.Email;
 
 namespace EcommerceBackend.Infrastructure;
 
@@ -26,6 +28,15 @@ public static class DependencyInjection
 
         // Seeding initial data.
         services.AddTransient<Seed>();
+
+        //Email
+        services.Configure<EmailOptions>(configuration.GetSection("Email"));
+        services.AddScoped<IEmailTemplateRenderer, MjmlHandlebarsEmailTemplateRenderer>();
+        var emailProvider = configuration["Email:Provider"];
+        if (string.Equals(emailProvider, "Azure", StringComparison.OrdinalIgnoreCase))
+            services.AddScoped<IEmailSender, AzureEmailSender>();
+        else
+            services.AddScoped<IEmailSender, FilePreviewEmailSender>();
 
         return services;
     }

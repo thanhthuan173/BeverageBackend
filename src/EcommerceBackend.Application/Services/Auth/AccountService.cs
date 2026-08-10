@@ -6,6 +6,7 @@ using EcommerceBackend.Domain.Models;
 using System.Security.Claims;
 using EcommerceBackend.Application.Exceptions;
 using EcommerceBackend.Application.Exceptions.Token;
+using EcommerceBackend.Application.Interfaces.Email;
 
 namespace EcommerceBackend.Application.Services.Auth
 {
@@ -19,8 +20,9 @@ namespace EcommerceBackend.Application.Services.Auth
         private readonly ITokenService _tokenService;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILoginNotificationService _loginNotificationService;
 
-        public AccountService(IUserRepository user, ICartRepository cart, IRoleRepository role, IUserRoleRepository userRole, IRefreshTokenRepository refreshToken, ITokenService tokenService, IMapper mapper, IUnitOfWork unitOfWork)
+        public AccountService(IUserRepository user, ICartRepository cart, IRoleRepository role, IUserRoleRepository userRole, IRefreshTokenRepository refreshToken, ITokenService tokenService, IMapper mapper, IUnitOfWork unitOfWork, ILoginNotificationService loginNotificationService)
         {
             _user = user;
             _cart = cart;
@@ -30,6 +32,7 @@ namespace EcommerceBackend.Application.Services.Auth
             _tokenService = tokenService;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
+            _loginNotificationService = loginNotificationService;
         }
 
         public async Task<TokenDto> Login(LoginDto dto)
@@ -52,6 +55,7 @@ namespace EcommerceBackend.Application.Services.Auth
             };
             _refreshToken.Add(refreshEntity);
             await _unitOfWork.SaveChangesAsync();
+            await _loginNotificationService.NotifyLoginSuccessAsync(user);
             return new TokenDto()
             {
                 AccessToken = accessToken,

@@ -4,6 +4,8 @@ using EcommerceBackend.Application.Services;
 using EcommerceBackend.Application.Validators.Auth;
 using EcommerceBackend.Application.Interfaces.Services;
 using EcommerceBackend.Application.Services.Auth;
+using EcommerceBackend.Application.Interfaces.Email;
+using EcommerceBackend.Application.Services.Email;
 
 namespace EcommerceBackend.Application;
 
@@ -27,6 +29,8 @@ public static class DependencyInjection
         services.AddScoped<IUserRoleService, UserRoleService>();
         services.AddScoped<ITokenService, TokenService>();
 
+        // Email
+        services.AddScoped<ILoginNotificationService, LoginNotificationService>();
         return services;
     }
 }

@@ -46,14 +46,12 @@ namespace EcommerceBackend.Application.Services
 
         public async Task<ProductDto> CreateAsync(CreateProductDto dto)
         {
-            if (await _repo.IsNameExistsAsync(dto.Name, dto.CategoryId))
+            var category = await _cateRepo.GetByIdAsync(dto.CategoryId) ?? throw new NotFoundException("Category not found");
+            if (await _repo.IsNameExistsAsync(dto.Name, category.Id))
                 throw new AlreadyExistsException("Product name already exists in this category");
-            if (!await _cateRepo.ExistsAsync(dto.CategoryId))
-                throw new NotFoundException("Category not found");
             var entity = _mapper.Map<Product>(dto);
             _repo.Add(entity);
             await _unitOfWork.SaveChangesAsync();
-            var category = await _cateRepo.GetByIdAsync(dto.CategoryId)??throw new NotFoundException("Category not found");
             var product = _mapper.Map<ProductDto>(entity);
             product.CategoryName=category.Name;
             return product;

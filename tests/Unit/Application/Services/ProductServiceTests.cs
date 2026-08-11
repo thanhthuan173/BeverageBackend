@@ -90,4 +90,40 @@ public class ProductServiceTests
         await Assert.ThrowsAsync<NotFoundException>(() => _productService.GetById(1));
     }
     #endregion
+
+    #region Create
+    [Fact]
+    public async Task CreateAsync_ProductNameExists_ThrowAlreadyExistsException()
+    {
+        var product = new CreateProductDto
+        {
+            Name = "Product 1",
+            ImgUrl = "imgs/prodImg.jpg",
+            CategoryId = 1
+        };
+        var category = new Category
+        {
+            Id = 1,
+            Name = "Category 1"
+        };
+        _categoryRepositoryMock.Setup(x => x.GetByIdAsync(product.CategoryId)).ReturnsAsync(category);
+        _productRepositoryMock.Setup(x => x.IsNameExistsAsync(product.Name, category.Id)).ReturnsAsync(true);
+
+        await Assert.ThrowsAsync<AlreadyExistsException>(() => _productService.CreateAsync(product));
+    }
+
+    [Fact]
+    public async Task CreateAsync_CategoryIsNull_ThrowNotFoundException()
+    {
+        var product = new CreateProductDto
+        {
+            Name = "Product 1",
+            ImgUrl = "imgs/prodImg.jpg",
+            CategoryId = 1
+        };
+        _categoryRepositoryMock.Setup(x => x.GetByIdAsync(product.CategoryId)).ReturnsAsync((Category?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => _productService.CreateAsync(product));
+    }
+    #endregion
 }

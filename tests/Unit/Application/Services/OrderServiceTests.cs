@@ -146,5 +146,69 @@ public class OrderServiceTests
         _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync((Order?)null);
         await Assert.ThrowsAsync<NotFoundException>(() => _orderService.GetOrderByIdAsync(1));
     }
+
+    [Fact]
+    public async Task GetOrderByIdAsync_InvalidUser_ThrowForbiddenException()
+    {
+        var order = new Order()
+        {
+            UserId = 1
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync(order);
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(2);
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => _orderService.GetOrderByIdAsync(1));
+    }
+
+    [Fact]
+    public async Task GetOrderByIdAsync_OrderExists_ReturnOrderDetailDto()
+    {
+        var order = new Order()
+        {
+            Status = OrderStatus.PendingPayment,
+            UserId = 1
+        };
+        var orderDetailDto = new OrderDetailDto()
+        {
+            Status = OrderStatus.PendingPayment,
+            UserId = 1
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync(order);
+        _mapperMock.Setup(x => x.Map<OrderDetailDto>(order)).Returns(orderDetailDto);
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(1);
+
+        var result = await _orderService.GetOrderByIdAsync(1);
+
+        Assert.Equal(order.UserId, orderDetailDto.UserId);
+        Assert.Equal(order.Status, orderDetailDto.Status);
+        _orderRepositoryMock.Verify(x => x.GetByIdWithItemsAsync(1, false), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrderByIdForAdminAsync_OrderDoesNotExist_ThrowNotFoundException()
+    {
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, true)).ReturnsAsync((Order?)null);
+        await Assert.ThrowsAsync<NotFoundException>(() => _orderService.GetOrderByIdForAdminAsync(1));
+    }
+
+    [Fact]
+    public async Task GetOrderByIdForAdminAsync_OrderExists_ReturnOrderDetailDto()
+    {
+        var order = new Order
+        {
+            Status = OrderStatus.PendingPayment
+        };
+        var orderDetailDto = new OrderDetailDto
+        {
+            Status = OrderStatus.PendingPayment
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, true)).ReturnsAsync(order);
+        _mapperMock.Setup(x => x.Map<OrderDetailDto>(order)).Returns(orderDetailDto);
+
+        var result = await _orderService.GetOrderByIdForAdminAsync(1);
+
+        Assert.Equal(order.Status, result.Status);
+        _orderRepositoryMock.Verify(x => x.GetByIdWithItemsAsync(1, true), Times.Once);
+    }
     #endregion
 }

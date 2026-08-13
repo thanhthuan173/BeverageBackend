@@ -301,5 +301,31 @@ public class ProductServiceTests
 
         await Assert.ThrowsAsync<AlreadyExistsException>(() => _productService.UpdateAsync(1, updateDto));
     }
+
+    [Fact]
+    public async Task UpdateAsync_NewProductNameDoesNotExistInNewCategory_UpdateSuccessfully()
+    {
+        var updateDto = new UpdateProductDto
+        {
+            Name = "New product name",
+            CategoryId = 2
+        };
+        var product = new Product
+        {
+            Name = "Product 1",
+            ImgUrl = "imgs/prodImg.jpg",
+            CategoryId = 1
+        };
+        _productRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(product);
+        _categoryRepositoryMock.Setup(x => x.ExistsAsync(updateDto.CategoryId.Value)).ReturnsAsync(true);
+        _productRepositoryMock.Setup(x => x.IsNameExistsAsync(product.Name, updateDto.CategoryId.Value, 1)).ReturnsAsync(false);
+        _productRepositoryMock.Setup(x => x.IsNameExistsAsync(updateDto.Name, updateDto.CategoryId.Value, 1)).ReturnsAsync(false);
+
+        await _productService.UpdateAsync(1, updateDto);
+
+        Assert.Equal(updateDto.Name,product.Name);
+        Assert.Equal(updateDto.CategoryId,product.CategoryId);
+        _unitOfWorkMock.Verify(x => x.SaveChangesAsync(), Times.Once);
+    }
     #endregion
 }

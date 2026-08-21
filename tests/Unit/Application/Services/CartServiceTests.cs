@@ -88,6 +88,74 @@ public class CartServiceTests
             Quantity = 4,
         }));
     }
+
+    [Fact]
+    public async Task AddToCartAsync_ItemExistsAndValidQuantity_UpdateCartItem()
+    {
+        var cart = CreateCart();
+        var product = new Product()
+        {
+            Id = 1,
+            Name = "Product 1",
+            ImgUrl = "imgs/prodImg.jpg",
+            Stock = 4
+        };
+        _productRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(product);
+
+        await _cartService.AddToCartAsync(new AddCartItemDto
+        {
+            ProductId = 1,
+            Quantity = 1
+        });
+
+        _unitOfWorkMock.Verify(x => x.SaveChangesAsync(), Times.Once);
+        var items = cart.CartItems.ToList();
+        Assert.Equal(3, items[0].Quantity);
+        Assert.Single(items);
+    }
+
+    [Fact]
+    public async Task AddToCartAsync_ItemNotExistsAndInvalidQuantity_ThrowBadRequestException()
+    {
+        var cart = CreateCart();
+        _productRepositoryMock.Setup(x => x.GetByIdAsync(2)).ReturnsAsync(new Product
+        {
+            Id = 2,
+            Name = "Product 2",
+            ImgUrl = "imgs/prodImg.jpg",
+            Stock = 5
+        });
+
+        await Assert.ThrowsAsync<BadRequestException>(() => _cartService.AddToCartAsync(new AddCartItemDto
+        {
+            ProductId = 2,
+            Quantity = 6
+        }));
+        _unitOfWorkMock.Verify(x => x.SaveChangesAsync(), Times.Never);
+        Assert.Single(cart.CartItems);
+    }
+
+    [Fact]
+    public async Task AddToCartAsync_ItemNotExistsAndValidQuantity_AddItemToCart()
+    {
+        var cart = CreateCart();
+        _productRepositoryMock.Setup(x => x.GetByIdAsync(2)).ReturnsAsync(new Product
+        {
+            Id = 2,
+            Name = "Product 2",
+            ImgUrl = "imgs/prodImg.jpg",
+            Stock = 5
+        });
+
+        await _cartService.AddToCartAsync(new AddCartItemDto
+        {
+            ProductId = 2,
+            Quantity = 4
+        });
+
+        _unitOfWorkMock.Verify(x => x.SaveChangesAsync(), Times.Once);
+        Assert.Equal(2, cart.CartItems.Count);
+    }
     #endregion
 
     #region Get Cart

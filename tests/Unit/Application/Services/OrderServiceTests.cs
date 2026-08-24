@@ -211,4 +211,118 @@ public class OrderServiceTests
         _orderRepositoryMock.Verify(x => x.GetByIdWithItemsAsync(1, true), Times.Once);
     }
     #endregion
+
+    #region Create Order
+    [Fact]
+    public async Task CreateOrderAsync_CartDoesNotExist_ThrowNotFoundException()
+    {
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(1);
+        _cartRepositoryMock.Setup(x => x.GetByUserWithItemsAsync(1)).ReturnsAsync((Cart?)null);
+        await Assert.ThrowsAsync<NotFoundException>(() => _orderService.CreateOrderAsync());
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_CartIsEmpty_ThrowBadRequestException()
+    {
+        var cart = new Cart
+        {
+            Id = 1,
+            CartItems = []
+        };
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(1);
+        _cartRepositoryMock.Setup(x => x.GetByUserWithItemsAsync(1)).ReturnsAsync(cart);
+        await Assert.ThrowsAsync<BadRequestException>(() => _orderService.CreateOrderAsync());
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_CartItemQuantityLessThanProductStock_ThrowBadRequestException()
+    {
+        var cart = new Cart
+        {
+            CartItems = new List<CartItem>()
+            {
+                new CartItem
+                {
+                    Quantity = 3,
+                    Product = new Product
+                    {
+                        Name = "Product 1",
+                        ImgUrl = "imgs/prodImg.jpg",
+                        Stock = 2
+                    }
+                }
+            }
+        };
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(1);
+        _cartRepositoryMock.Setup(x => x.GetByUserWithItemsAsync(1)).ReturnsAsync(cart);
+        await Assert.ThrowsAsync<BadRequestException>(() => _orderService.CreateOrderAsync());
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_CreateSuccessfully_ReturnOrderDetailDto()
+    {
+        var cart = new Cart()
+        {
+            CartItems = new List<CartItem>()
+            {
+                new CartItem
+                {
+                    Quantity = 3,
+                    UnitPrice = 10,
+                    Product = new Product
+                    {
+                        Name = "Product 1",
+                        ImgUrl = "imgs/prodImg.jpg",
+                        Stock = 4
+                    }
+                },
+                new CartItem
+                {
+                    Quantity = 8,
+                    UnitPrice = 20,
+                    Product = new Product
+                    {
+                        Name = "Product 2",
+                        ImgUrl = "imgs/prodImg.jpg",
+                        Stock = 10
+                    }
+                },
+            }
+        };
+        var order = new Order()
+        {
+            Id = 1,
+            Status = OrderStatus.PendingPayment,
+            TotalAmount = 190,
+            UserId = 1,
+            OrderItems = new List<OrderItem>()
+        };
+        var createdOrder = new Order()
+        {
+            Id = order.Id,
+            Status = OrderStatus.PendingPayment,
+            TotalAmount = 190,
+            UserId = 1,
+            OrderItems = new List<OrderItem>()
+        };
+        var orderDetailDto = new OrderDetailDto()
+        {
+            Id = 1,
+            Status = OrderStatus.PendingPayment,
+            TotalAmount = 190,
+            UserId = 1
+        };
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(1);
+        _cartRepositoryMock.Setup(x => x.GetByUserWithItemsAsync(1)).ReturnsAsync(cart);
+        _orderRepositoryMock.Setup(x => x.Add(order));
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync(createdOrder);
+        _mapperMock.Setup(x => x.Map<OrderDetailDto>(createdOrder)).Returns(orderDetailDto);
+
+        var result = await _orderService.CreateOrderAsync();
+
+        Assert.Empty(cart.CartItems);
+        _orderRepositoryMock.Verify(x => x.Add(order), Times.Once);
+        _unitOfWorkMock.Verify(x => x.SaveChangesAsync(), Times.Once);
+    }
+    #endregion
 }

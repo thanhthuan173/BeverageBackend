@@ -289,17 +289,9 @@ public class OrderServiceTests
                 },
             }
         };
-        var order = new Order()
-        {
-            Id = 1,
-            Status = OrderStatus.PendingPayment,
-            TotalAmount = 190,
-            UserId = 1,
-            OrderItems = new List<OrderItem>()
-        };
         var createdOrder = new Order()
         {
-            Id = order.Id,
+            Id = 1,
             Status = OrderStatus.PendingPayment,
             TotalAmount = 190,
             UserId = 1,
@@ -310,19 +302,200 @@ public class OrderServiceTests
             Id = 1,
             Status = OrderStatus.PendingPayment,
             TotalAmount = 190,
-            UserId = 1
+            UserId = 1,
+            OrderItems = new List<OrderItemDto>()
+            {
+                new OrderItemDto
+                {
+                    ProductName="Product 1",
+                    Quantity = 3,
+                    UnitPrice = 10
+                },
+                new OrderItemDto
+                {
+                    ProductName="Product 1",
+                    Quantity = 8,
+                    UnitPrice = 20
+                }
+            }
         };
         _currentUserServiceMock.Setup(x => x.UserId).Returns(1);
         _cartRepositoryMock.Setup(x => x.GetByUserWithItemsAsync(1)).ReturnsAsync(cart);
-        _orderRepositoryMock.Setup(x => x.Add(order));
+        _orderRepositoryMock.Setup(x => x.Add(It.IsAny<Order>())).Callback<Order>(o => o.Id = 1);
         _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync(createdOrder);
         _mapperMock.Setup(x => x.Map<OrderDetailDto>(createdOrder)).Returns(orderDetailDto);
 
         var result = await _orderService.CreateOrderAsync();
 
         Assert.Empty(cart.CartItems);
-        _orderRepositoryMock.Verify(x => x.Add(order), Times.Once);
+        _orderRepositoryMock.Verify(x => x.Add(It.IsAny<Order>()), Times.Once);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(), Times.Once);
+        Assert.Equal(2, result.OrderItems.Count);
+    }
+    #endregion
+
+    #region Update Status
+    [Fact]
+    public async Task UpdateStatusAsync_OrderNotExists_ThrowNotFoundException()
+    {
+        _orderRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync((Order?)null);
+        await Assert.ThrowsAsync<NotFoundException>(() => _orderService.UpdateStatusAsync(1, OrderStatus.PendingPayment));
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_OrderIsDeleted_ThrowBadRequestException()
+    {
+        var order = new Order
+        {
+            IsDeleted = true
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(order);
+        await Assert.ThrowsAsync<BadRequestException>(() => _orderService.UpdateStatusAsync(1, OrderStatus.PendingPayment));
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_OrderIsCancelled_ThrowBadRequestException()
+    {
+        var order = new Order
+        {
+            Status = OrderStatus.Cancelled
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(order);
+        await Assert.ThrowsAsync<BadRequestException>(() => _orderService.UpdateStatusAsync(1, OrderStatus.PendingPayment));
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_InvalidOrderStatus_ThrowBadRequestException()
+    {
+        var order = new Order
+        {
+            Status = OrderStatus.Shipping
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(order);
+        await Assert.ThrowsAsync<BadRequestException>(() => _orderService.UpdateStatusAsync(1, OrderStatus.Paid));
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_UpdateSuccessfully()
+    {
+        var order = new Order
+        {
+            Status = OrderStatus.Packaging
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(order);
+
+        await _orderService.UpdateStatusAsync(1, OrderStatus.Shipping);
+
+        _unitOfWorkMock.Verify(x => x.SaveChangesAsync(), Times.Once);
+    }
+    #endregion
+
+    #region Cancel Order
+    [Fact]
+    public async Task CancelOrderAsync_OrderNotExists_ThrowNotFoundException()
+    {
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync((Order?)null);
+        await Assert.ThrowsAsync<NotFoundException>(() => _orderService.CancelOrderAsync(1));
+    }
+
+    [Fact]
+    public async Task CancelOrderAsync_InvalidUser_ThrowForbiddenException()
+    {
+        var order = new Order
+        {
+            UserId = 1
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync(order);
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(2);
+        await Assert.ThrowsAsync<ForbiddenException>(() => _orderService.CancelOrderAsync(1));
+    }
+
+    [Fact]
+    public async Task CancelOrderAsync_OrderIsCancelled_ThrowBadRequestException()
+    {
+        var order = new Order
+        {
+            Status = OrderStatus.Cancelled,
+            UserId = 1
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync(order);
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(1);
+        await Assert.ThrowsAsync<BadRequestException>(() => _orderService.CancelOrderAsync(1));
+    }
+
+    [Fact]
+    public async Task CancelOrderAsync_InvalidStatus_ThrowBadRequestException()
+    {
+        var order = new Order
+        {
+            Status = OrderStatus.Shipping,
+            UserId = 1
+        };
+        _orderRepositoryMock.Setup(x => x.GetByIdWithItemsAsync(1, false)).ReturnsAsync(order);
+        _currentUserServiceMock.Setup(x => x.UserId).Returns(1);
+        await Assert.ThrowsAsync<BadRequestException>(() => _orderService.CancelOrderAsync(1));
+        _unitOfWorkMock.Verify(x=>x.SaveChangesAsync(),Times.Never);
+    }
+
+    [Fact]
+    public async Task CancelOrderAsync_CancelSuccessfully()
+    {
+        var order = new Order
+        {
+            Status = OrderStatus.Packaging,
+            UserId=1
+        };
+        _orderRepositoryMock.Setup(x=>x.GetByIdWithItemsAsync(1,false)).ReturnsAsync(order);
+        _currentUserServiceMock.Setup(x=>x.UserId).Returns(1);
+
+        await _orderService.CancelOrderAsync(1);
+
+        _unitOfWorkMock.Verify(x=>x.SaveChangesAsync(),Times.Once);
+    }
+    #endregion
+
+    #region Delete Order
+    [Fact]
+    public async Task DeleteOrderAsync_OrderNotExists_ThrowNotFoundException()
+    {
+        _orderRepositoryMock.Setup(x=>x.GetByIdAsync(1)).ReturnsAsync((Order?)null);
+        await Assert.ThrowsAsync<NotFoundException>(()=>_orderService.DeleteOrderAsync(1));
+    }
+
+    [Fact]
+    public async Task DeleteOrderAsync_OrderIsDeleted_ThrowBadRequestException()
+    {
+        _orderRepositoryMock.Setup(x=>x.GetByIdAsync(1)).ReturnsAsync(new Order
+        {
+            IsDeleted=true
+        });
+        await Assert.ThrowsAsync<BadRequestException>(()=>_orderService.DeleteOrderAsync(1));
+    }
+
+    [Fact]
+    public async Task DeleteOrderAsync_InvalidStatus_ThrowBadRequestException()
+    {
+        _orderRepositoryMock.Setup(x=>x.GetByIdAsync(1)).ReturnsAsync(new Order
+        {
+            Status=OrderStatus.Shipping
+        });
+        await Assert.ThrowsAsync<BadRequestException>(()=>_orderService.DeleteOrderAsync(1));
+    }
+
+    [Fact]
+    public async Task DeleteOrderAsync_DeleteSuccessfully()
+    {
+        var order = new Order
+        {
+            Status=OrderStatus.Completed,
+            IsDeleted=false
+        };
+        _orderRepositoryMock.Setup(x=>x.GetByIdAsync(1)).ReturnsAsync(order);
+
+        await _orderService.DeleteOrderAsync(1);
+
+        _unitOfWorkMock.Verify(x=>x.SaveChangesAsync(),Times.Once);
+        Assert.True(order.IsDeleted);
     }
     #endregion
 }
